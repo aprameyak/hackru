@@ -1,0 +1,27 @@
+{
+  "name": "hackru",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "emulators": "firebase emulators:start",
+    "deploy:functions": "cd functions && npm run deploy",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/aprameyak/hackru.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/aprameyak/hackru/issues"
+  },
+  "homepage": "https://github.com/aprameyak/hackru#readme",
+  "dependencies": {},
+  "devDependencies": {
+    "firebase-tools": "^14.17.0"
+  }
+}
