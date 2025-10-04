@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput, Alert } from 'react-native';
 import { colors } from '../theme/colors';
 import { fonts, fontSizes } from '../theme/typography';
-import * as ImagePicker from 'expo-image-picker';
+import { apiService } from '../services/api';
 
 interface UserProfile {
   name: string;
@@ -43,42 +43,11 @@ export function ProfileScreen() {
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  const requestImagePermission = async () => {
-    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-    if (status !== 'granted') {
-      Alert.alert('Permission needed', 'Please grant camera roll permissions to upload photos');
-      return false;
-    }
-    return true;
-  };
-
-  const pickImage = async () => {
-    const hasPermission = await requestImagePermission();
-    if (!hasPermission) return;
-
-    const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
-      allowsEditing: true,
-      aspect: [1, 1],
-      quality: 0.8,
-    });
-
-    if (!result.canceled) {
-      setProfile(prev => ({ ...prev, profileImage: result.assets[0].uri }));
-    }
-  };
 
   const saveProfile = async () => {
     setLoading(true);
     try {
-      await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:5001/hackru/us-central1'}/createUser`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: 'current-user',
-          profile,
-        }),
-      });
+      await apiService.createUser('current-user', profile);
       setEditing(false);
       Alert.alert('Success', 'Profile updated successfully!');
     } catch (error) {
@@ -91,15 +60,11 @@ export function ProfileScreen() {
 
   const requestVerification = async () => {
     try {
-      await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:5001/hackru/us-central1'}/requestUniversityVerification`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          userId: 'current-user',
-          email: 'john.doe@umich.edu',
-          university: 'University of Michigan',
-        }),
-      });
+      await apiService.requestUniversityVerification(
+        'current-user',
+        'john.doe@umich.edu',
+        'University of Michigan'
+      );
       Alert.alert('Verification Requested', 'Check your email to complete verification');
     } catch (error) {
       console.error('Error requesting verification:', error);
@@ -136,17 +101,12 @@ export function ProfileScreen() {
       </View>
 
       <View style={styles.profileSection}>
-        <TouchableOpacity style={styles.imageContainer} onPress={editing ? pickImage : undefined}>
+        <View style={styles.imageContainer}>
           <Image
             source={{ uri: profile.profileImage || 'https://via.placeholder.com/150x150' }}
             style={styles.profileImage}
           />
-          {editing && (
-            <View style={styles.imageOverlay}>
-              <Text style={styles.imageOverlayText}>Tap to change</Text>
-            </View>
-          )}
-        </TouchableOpacity>
+        </View>
 
         <Text style={styles.name}>{profile.name}</Text>
         <Text style={styles.age}>{profile.age} years old</Text>

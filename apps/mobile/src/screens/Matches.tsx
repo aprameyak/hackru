@@ -1,7 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, Alert } from 'react-native';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation';
 import { colors } from '../theme/colors';
 import { fonts, fontSizes } from '../theme/typography';
 
@@ -20,7 +18,7 @@ interface Match {
   };
 }
 
-export function MatchesScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'Matches'>) {
+export function MatchesScreen() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -74,7 +72,7 @@ export function MatchesScreen({ navigation }: NativeStackScreenProps<RootStackPa
   };
 
   const openChat = (match: Match) => {
-    navigation.navigate('Chat', { matchId: match.id });
+    Alert.alert('Chat', `Chat with ${match.userProfile?.name} - Feature coming soon!`);
   };
 
   const renderMatch = ({ item }: { item: Match }) => (

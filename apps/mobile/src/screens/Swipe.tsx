@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
-import Swiper from 'react-native-deck-swiper';
+import { View, Text, StyleSheet, TouchableOpacity, Image, Alert, ScrollView } from 'react-native';
 import { colors } from '../theme/colors';
 import { fonts, fontSizes } from '../theme/typography';
+import { apiService } from '../services/api';
 
 interface Candidate {
   id: string;
@@ -29,13 +29,29 @@ export function SwipeScreen() {
 
   const loadCandidates = async () => {
     try {
-      const response = await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:5001/hackru/us-central1'}/getTopCandidates`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: 'current-user', limit: 20 }),
-      });
-      const data = await response.json();
-      setCandidates(data.candidates || []);
+      // Mock data for now since API might not have users yet
+      const mockCandidates: Candidate[] = [
+        {
+          id: '1',
+          name: 'Sarah Johnson',
+          age: 22,
+          budget: 1200,
+          location: 'University of Michigan',
+          lifestylePreferences: { cleanliness: 'high', noise: 'quiet' },
+          score: 85,
+          badges: { universityVerified: true }
+        },
+        {
+          id: '2',
+          name: 'Alex Chen',
+          age: 21,
+          budget: 1000,
+          location: 'Ann Arbor',
+          lifestylePreferences: { pets: 'none', guests: 'occasional' },
+          score: 92
+        }
+      ];
+      setCandidates(mockCandidates);
     } catch (error) {
       console.error('Error loading candidates:', error);
       Alert.alert('Error', 'Failed to load candidates');
@@ -44,82 +60,25 @@ export function SwipeScreen() {
     }
   };
 
-  const handleSwipeRight = async (cardIndex: number) => {
-    const candidate = candidates[cardIndex];
-    if (!candidate) return;
-
+  const handleLike = async (candidate: Candidate) => {
     try {
-      await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:5001/hackru/us-central1'}/likeUser`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fromUserId: 'current-user',
-          toUserId: candidate.id,
-        }),
-      });
+      await apiService.likeUser('current-user', candidate.id);
+      setCandidates(prev => prev.filter(c => c.id !== candidate.id));
+      Alert.alert('Liked!', `You liked ${candidate.name}`);
     } catch (error) {
       console.error('Error liking user:', error);
     }
   };
 
-  const handleSwipeLeft = async (cardIndex: number) => {
-    const candidate = candidates[cardIndex];
-    if (!candidate) return;
-
+  const handlePass = async (candidate: Candidate) => {
     try {
-      await fetch(`${process.env.EXPO_PUBLIC_API_BASE_URL || 'http://localhost:5001/hackru/us-central1'}/passUser`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fromUserId: 'current-user',
-          toUserId: candidate.id,
-        }),
-      });
+      await apiService.passUser('current-user', candidate.id);
+      setCandidates(prev => prev.filter(c => c.id !== candidate.id));
     } catch (error) {
       console.error('Error passing user:', error);
     }
   };
 
-  const renderCard = (candidate: Candidate, index: number) => {
-    return (
-      <View style={styles.card}>
-        <View style={styles.imageContainer}>
-          <Image
-            source={{ uri: candidate.profileImage || 'https://via.placeholder.com/300x400' }}
-            style={styles.profileImage}
-          />
-          <View style={styles.scoreBadge}>
-            <Text style={styles.scoreText}>{candidate.score}%</Text>
-          </View>
-        </View>
-
-        <View style={styles.cardContent}>
-          <View style={styles.header}>
-            <Text style={styles.name}>{candidate.name}, {candidate.age}</Text>
-            {candidate.badges?.universityVerified && (
-              <View style={styles.verifiedBadge}>
-                <Text style={styles.verifiedText}>🎓 Verified</Text>
-              </View>
-            )}
-          </View>
-
-          <Text style={styles.location}>{candidate.location}</Text>
-          <Text style={styles.budget}>Budget: ${candidate.budget}/month</Text>
-
-          <View style={styles.lifestyleContainer}>
-            <Text style={styles.lifestyleTitle}>Lifestyle:</Text>
-            <View style={styles.lifestyleTags}>
-              {Object.entries(candidate.lifestylePreferences || {}).map(([key, value]) => (
-                <View key={key} style={styles.lifestyleTag}>
-                  <Text style={styles.lifestyleText}>{key}: {String(value)}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        </View>
-      </View>
-    );
-  };
 
   if (loading) {
     return (
@@ -141,22 +100,61 @@ export function SwipeScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <Swiper
-        cards={candidates}
-        renderCard={renderCard}
-        onSwipedRight={handleSwipeRight}
-        onSwipedLeft={handleSwipeLeft}
-        onSwipedAll={() => setCandidates([])}
-        cardIndex={currentIndex}
-        backgroundColor="transparent"
-        stackSize={3}
-        stackSeparation={15}
-        animateOverlayLabelsOpacity
-        animateCardOpacity
-        swipeBackCard
-      />
-    </View>
+    <ScrollView style={styles.container}>
+      {candidates.map((candidate) => (
+        <View key={candidate.id} style={styles.card}>
+          <View style={styles.imageContainer}>
+            <Image
+              source={{ uri: candidate.profileImage || 'https://via.placeholder.com/300x200' }}
+              style={styles.profileImage}
+            />
+            <View style={styles.scoreBadge}>
+              <Text style={styles.scoreText}>{candidate.score}%</Text>
+            </View>
+          </View>
+
+          <View style={styles.cardContent}>
+            <View style={styles.header}>
+              <Text style={styles.name}>{candidate.name}, {candidate.age}</Text>
+              {candidate.badges?.universityVerified && (
+                <View style={styles.verifiedBadge}>
+                  <Text style={styles.verifiedText}>🎓 Verified</Text>
+                </View>
+              )}
+            </View>
+
+            <Text style={styles.location}>{candidate.location}</Text>
+            <Text style={styles.budget}>Budget: ${candidate.budget}/month</Text>
+
+            <View style={styles.lifestyleContainer}>
+              <Text style={styles.lifestyleTitle}>Lifestyle:</Text>
+              <View style={styles.lifestyleTags}>
+                {Object.entries(candidate.lifestylePreferences || {}).map(([key, value]) => (
+                  <View key={key} style={styles.lifestyleTag}>
+                    <Text style={styles.lifestyleText}>{key}: {String(value)}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
+
+            <View style={styles.actions}>
+              <TouchableOpacity 
+                style={styles.passButton} 
+                onPress={() => handlePass(candidate)}
+              >
+                <Text style={styles.passButtonText}>Pass</Text>
+              </TouchableOpacity>
+              <TouchableOpacity 
+                style={styles.likeButton} 
+                onPress={() => handleLike(candidate)}
+              >
+                <Text style={styles.likeButtonText}>Like</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      ))}
+    </ScrollView>
   );
 }
 
@@ -199,11 +197,10 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   card: {
-    flex: 1,
     backgroundColor: colors.white,
     borderRadius: 20,
     marginHorizontal: 20,
-    marginVertical: 40,
+    marginVertical: 10,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -301,5 +298,39 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.caption,
     fontFamily: fonts.body,
     color: colors.brandBlue,
+  },
+  actions: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginTop: 20,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: colors.gray100,
+  },
+  passButton: {
+    flex: 0.45,
+    backgroundColor: colors.gray100,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  passButtonText: {
+    fontSize: fontSizes.body,
+    fontFamily: fonts.body,
+    color: colors.gray800,
+    fontWeight: '600',
+  },
+  likeButton: {
+    flex: 0.45,
+    backgroundColor: colors.brandBlue,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  likeButtonText: {
+    fontSize: fontSizes.body,
+    fontFamily: fonts.body,
+    color: colors.white,
+    fontWeight: '600',
   },
 });
