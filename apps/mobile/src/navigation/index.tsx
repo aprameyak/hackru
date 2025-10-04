@@ -6,7 +6,6 @@ import { SwipeScreen } from '../screens/Swipe';
 import { MatchesScreen } from '../screens/Matches';
 import { ChatScreen } from '../screens/Chat';
 import { ProfileScreen } from '../screens/Profile';
-import { MapScreen } from '../screens/Map';
 
 export type RootStackParamList = {
   Onboarding: undefined;
@@ -14,7 +13,6 @@ export type RootStackParamList = {
   Matches: undefined;
   Chat: { matchId: string } | undefined;
   Profile: undefined;
-  Map: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -28,7 +26,6 @@ export function AppNavigator() {
         <Stack.Screen name="Matches" component={MatchesScreen} />
         <Stack.Screen name="Chat" component={ChatScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
-        <Stack.Screen name="Map" component={MapScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

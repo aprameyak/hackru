@@ -4,7 +4,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation';
 import { colors } from '../theme/colors';
 import { fonts, fontSizes } from '../theme/typography';
-import { signInWithEmailAndPassword, createUserWithEmailAndPassword, signInWithCredential, GoogleAuthProvider } from 'firebase/auth';
+import { signInWithEmailAndPassword, createUserWithEmailAndPassword } from 'firebase/auth';
 import { auth } from '../firebase/app';
 
 export function OnboardingScreen({ navigation }: NativeStackScreenProps<RootStackParamList, 'Onboarding'>) {
@@ -35,24 +35,6 @@ export function OnboardingScreen({ navigation }: NativeStackScreenProps<RootStac
     }
   };
 
-  const handleGoogleAuth = async () => {
-    setLoading(true);
-    try {
-      const { GoogleSignin } = await import('@react-native-google-signin/google-signin');
-      await GoogleSignin.configure({
-        webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-      });
-      
-      const { idToken } = await GoogleSignin.signIn();
-      const googleCredential = GoogleAuthProvider.credential(idToken);
-      await signInWithCredential(auth, googleCredential);
-      navigation.replace('Swipe');
-    } catch (error: any) {
-      Alert.alert('Error', error.message);
-    } finally {
-      setLoading(false);
-    }
-  };
 
   return (
     <ScrollView style={styles.container}>
@@ -99,14 +81,6 @@ export function OnboardingScreen({ navigation }: NativeStackScreenProps<RootStac
           <Text style={styles.buttonText}>
             {loading ? 'Loading...' : (isLogin ? 'Sign In' : 'Sign Up')}
           </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.button, styles.googleButton]}
-          onPress={handleGoogleAuth}
-          disabled={loading}
-        >
-          <Text style={styles.googleButtonText}>Continue with Google</Text>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -165,19 +139,8 @@ const styles = StyleSheet.create({
   primaryButton: {
     backgroundColor: colors.brandBlue,
   },
-  googleButton: {
-    backgroundColor: colors.white,
-    borderWidth: 1,
-    borderColor: colors.gray100,
-  },
   buttonText: {
     color: colors.white,
-    fontSize: fontSizes.body,
-    fontFamily: fonts.body,
-    fontWeight: '600',
-  },
-  googleButtonText: {
-    color: colors.gray800,
     fontSize: fontSizes.body,
     fontFamily: fonts.body,
     fontWeight: '600',
