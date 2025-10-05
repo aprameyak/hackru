@@ -3,6 +3,8 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, TextInput,
 import { colors } from '../theme/colors';
 import { fonts, fontSizes } from '../theme/typography';
 import { apiService } from '../services/api';
+import { VoiceInput } from '../components/VoiceInput';
+import { NLPService } from '../services/nlpService';
 
 interface UserProfile {
   name: string;
@@ -42,6 +44,8 @@ export function ProfileScreen() {
   });
   const [editing, setEditing] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showVoiceInput, setShowVoiceInput] = useState(false);
+  const [extractedPreferences, setExtractedPreferences] = useState<any>(null);
 
 
   const saveProfile = async () => {
@@ -69,6 +73,28 @@ export function ProfileScreen() {
     } catch (error) {
       console.error('Error requesting verification:', error);
       Alert.alert('Error', 'Failed to request verification');
+    }
+  };
+
+  const handleVoiceTranscript = (text: string) => {
+    const preferences = NLPService.extractPreferences(text);
+    setExtractedPreferences(preferences);
+    
+    // Auto-update profile based on extracted data
+    if (preferences.budget) {
+      setProfile(prev => ({ ...prev, budget: preferences.budget }));
+    }
+    if (preferences.age) {
+      setProfile(prev => ({ ...prev, age: preferences.age }));
+    }
+    if (preferences.location) {
+      setProfile(prev => ({ ...prev, location: preferences.location }));
+    }
+    if (preferences.lifestylePreferences) {
+      setProfile(prev => ({ 
+        ...prev, 
+        lifestylePreferences: { ...prev.lifestylePreferences, ...preferences.lifestylePreferences }
+      }));
     }
   };
 
@@ -121,7 +147,7 @@ export function ProfileScreen() {
           <TextInput
             style={styles.input}
             value={profile.budget.toString()}
-            onChangeText={(text) => setProfile(prev => ({ ...prev, budget: parseInt(text) || 0 }))}
+            onChangeText={(text: string) => setProfile(prev => ({ ...prev, budget: parseInt(text) || 0 }))}
             keyboardType="numeric"
             placeholder="Monthly budget"
           />
@@ -133,12 +159,12 @@ export function ProfileScreen() {
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Lifestyle Preferences</Text>
         <View style={styles.preferencesContainer}>
-          {Object.entries(profile.lifestylePreferences).map(([key, value]) => (
-            <View key={key} style={styles.preferenceItem}>
-              <Text style={styles.preferenceKey}>{key.charAt(0).toUpperCase() + key.slice(1)}</Text>
-              <Text style={styles.preferenceValue}>{String(value)}</Text>
-            </View>
-          ))}
+                {Object.entries(profile.lifestylePreferences).map(([key, value]) => (
+                  <View key={key} style={styles.preferenceItem}>
+                    <Text style={styles.preferenceKey}>{key.charAt(0).toUpperCase() + key.slice(1)}</Text>
+                    <Text style={styles.preferenceValue}>{typeof value === 'object' ? JSON.stringify(value) : String(value)}</Text>
+                  </View>
+                ))}
         </View>
       </View>
 
@@ -151,6 +177,46 @@ export function ProfileScreen() {
           <TouchableOpacity style={styles.verifyButton} onPress={requestVerification}>
             <Text style={styles.verifyButtonText}>Request Verification</Text>
           </TouchableOpacity>
+        </View>
+      )}
+
+      {editing && (
+        <View style={styles.voiceSection}>
+          <Text style={styles.voiceSectionTitle}>🎤 Update with Voice</Text>
+          <Text style={styles.voiceSectionSubtitle}>
+            Speak naturally to update your preferences
+          </Text>
+          
+          <TouchableOpacity
+            style={styles.voiceToggleButton}
+            onPress={() => setShowVoiceInput(!showVoiceInput)}
+          >
+            <Text style={styles.voiceToggleText}>
+              {showVoiceInput ? 'Hide Voice Input' : 'Use Voice Input'}
+            </Text>
+          </TouchableOpacity>
+
+          {showVoiceInput && (
+            <VoiceInput
+              onTranscript={handleVoiceTranscript}
+              placeholder="Example: 'I prefer a quiet environment, budget around $1000, I like to keep things clean'"
+            />
+          )}
+
+          {extractedPreferences && (
+            <View style={styles.voicePreferencesContainer}>
+              <Text style={styles.preferencesTitle}>Detected Changes:</Text>
+              <Text style={styles.preferencesText}>
+                {NLPService.generateSummary(extractedPreferences)}
+              </Text>
+              <TouchableOpacity
+                style={styles.clearPreferencesButton}
+                onPress={() => setExtractedPreferences(null)}
+              >
+                <Text style={styles.clearPreferencesText}>Clear</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
       )}
 
@@ -358,6 +424,75 @@ const styles = StyleSheet.create({
   saveButtonText: {
     color: colors.white,
     fontSize: fontSizes.body,
+    fontFamily: fonts.body,
+    fontWeight: '600',
+  },
+  voiceSection: {
+    margin: 24,
+    padding: 20,
+    backgroundColor: colors.brandBlue50,
+    borderRadius: 16,
+  },
+  voiceSectionTitle: {
+    fontSize: fontSizes.h3,
+    fontFamily: fonts.heading,
+    color: colors.gray800,
+    fontWeight: '600',
+    marginBottom: 8,
+    textAlign: 'center',
+  },
+  voiceSectionSubtitle: {
+    fontSize: fontSizes.body,
+    fontFamily: fonts.body,
+    color: colors.gray800,
+    textAlign: 'center',
+    marginBottom: 20,
+    lineHeight: 20,
+  },
+  voiceToggleButton: {
+    backgroundColor: colors.brandBlue,
+    paddingHorizontal: 20,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  voiceToggleText: {
+    color: colors.white,
+    fontSize: fontSizes.body,
+    fontFamily: fonts.body,
+    fontWeight: '600',
+  },
+  voicePreferencesContainer: {
+    backgroundColor: colors.white,
+    padding: 16,
+    borderRadius: 12,
+    marginTop: 16,
+  },
+  preferencesTitle: {
+    fontSize: fontSizes.h3,
+    fontFamily: fonts.heading,
+    color: colors.gray800,
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  preferencesText: {
+    fontSize: fontSizes.body,
+    fontFamily: fonts.body,
+    color: colors.gray800,
+    lineHeight: 20,
+    marginBottom: 12,
+  },
+  clearPreferencesButton: {
+    backgroundColor: colors.gray100,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 6,
+    alignSelf: 'flex-start',
+  },
+  clearPreferencesText: {
+    color: colors.gray800,
+    fontSize: fontSizes.caption,
     fontFamily: fonts.body,
     fontWeight: '600',
   },
